@@ -1,27 +1,433 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Black Sea × Fingerprint Generator</title><style>
-:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#17212b;background:#e9edf0}*{box-sizing:border-box}body{margin:0}.app{display:grid;grid-template-columns:minmax(0,1fr) 340px;min-height:100vh}.stage{padding:28px;display:grid;place-items:center}.paper{width:min(100%,1100px);aspect-ratio:842/596;background:#fff;box-shadow:0 14px 50px #0002;overflow:hidden}svg{width:100%;height:100%;display:block}.panel{background:#fff;border-left:1px solid #d9dee3;padding:22px;overflow:auto;height:100vh;position:sticky;top:0}h1{font-size:18px;margin:0 0 5px}.sub{font-size:12px;color:#687582;margin-bottom:18px}.row{margin:12px 0}.lab{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}.lab output{font-variant-numeric:tabular-nums;color:#66727d}input[type=range]{width:100%}input[type=number],input[type=color]{width:100%;height:34px;border:1px solid #ccd3d9;border-radius:6px;padding:5px 8px;background:#fff}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}.buttons.three{grid-template-columns:1fr 1fr 1fr}button{border:1px solid #bcc5cc;background:#fff;border-radius:7px;padding:9px 8px;cursor:pointer;font-weight:600}button.primary{background:#17212b;color:#fff;border-color:#17212b}.section{border-top:1px solid #e5e8eb;margin-top:18px;padding-top:12px}.section h2{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#71808c;margin:0 0 10px}.hint{font-size:11px;line-height:1.4;color:#7a8791}.check{display:flex;align-items:center;gap:8px;font-size:12px}.status{font-size:11px;color:#6d7983;margin-top:8px}@media(max-width:850px){.app{grid-template-columns:1fr}.panel{height:auto;position:static;border-left:0;border-top:1px solid #ddd}.stage{padding:12px}}
-</style></head><body><div class="app"><main class="stage"><div class="paper"><svg id="art" viewBox="0 0 842 596" xmlns="http://www.w3.org/2000/svg"><rect width="842" height="596" fill="white"/><g id="contours" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div></main><aside class="panel"><h1>Black Sea × Fingerprint</h1><div class="sub">Procedural contour-pattern generator · SVG output</div>
-<div class="row"><div class="lab"><label>Seed</label></div><input id="seed" type="number" value="18427"></div><div class="buttons three"><button id="random">Random</button><button id="mutate">Mutate</button><button id="reset">Reset</button></div>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Black Sea × Fingerprint Generator</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#17212b;background:#e9edf0}
+*{box-sizing:border-box}
+body{margin:0}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 340px;min-height:100vh}
+.stage{padding:28px;display:grid;place-items:center}
+.paper{width:min(100%,1100px);aspect-ratio:842/596;background:#fff;box-shadow:0 14px 50px #0002;overflow:hidden}
+svg{width:100%;height:100%;display:block;touch-action:none}
+.panel{background:#fff;border-left:1px solid #d9dee3;padding:22px;overflow:auto;height:100vh;position:sticky;top:0}
+h1{font-size:18px;margin:0 0 5px}
+.sub{font-size:12px;color:#687582;margin-bottom:18px}
+.row{margin:12px 0}
+.lab{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.lab output{font-variant-numeric:tabular-nums;color:#66727d}
+input[type=range]{width:100%}
+input[type=number],input[type=color]{width:100%;height:34px;border:1px solid #ccd3d9;border-radius:6px;padding:5px 8px;background:#fff}
+.buttons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.buttons.three{grid-template-columns:1fr 1fr 1fr}
+button{border:1px solid #bcc5cc;background:#fff;border-radius:7px;padding:9px 8px;cursor:pointer;font-weight:600}
+button.primary{background:#17212b;color:#fff;border-color:#17212b}
+.section{border-top:1px solid #e5e8eb;margin-top:18px;padding-top:12px}
+.section h2{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#71808c;margin:0 0 10px}
+.hint{font-size:11px;line-height:1.4;color:#7a8791}
+.check{display:flex;align-items:center;gap:8px;font-size:12px}
+.status{font-size:11px;color:#6d7983;margin-top:8px}
+#mesh{pointer-events:none}
+#mesh .mesh-line{fill:none;stroke:#17212b;stroke-width:.7;stroke-opacity:.32;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+#mesh .mesh-node{fill:#fff;stroke:#17212b;stroke-width:1.2;vector-effect:non-scaling-stroke;pointer-events:all;cursor:grab}
+#mesh .mesh-node:hover,#mesh .mesh-node.active{fill:#17212b}
+#mesh .mesh-node:active{cursor:grabbing}
+.share-note{word-break:break-word}
+@media(max-width:850px){.app{grid-template-columns:1fr}.panel{height:auto;position:static;border-left:0;border-top:1px solid #ddd}.stage{padding:12px}}
+</style>
+</head>
+<body>
+<div class="app">
+<main class="stage">
+<div class="paper">
+<svg id="art" viewBox="0 0 842 596" xmlns="http://www.w3.org/2000/svg">
+<rect width="842" height="596" fill="white"/>
+<g id="contours" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<g id="mesh"></g>
+</svg>
+</div>
+</main>
+<aside class="panel">
+<h1>Black Sea × Fingerprint</h1>
+<div class="sub">Procedural contour-pattern generator · SVG output</div>
+<div class="row"><div class="lab"><label>Seed</label></div><input id="seed" type="number" value="18427"></div>
+<div class="buttons three"><button id="random">Random</button><button id="mutate">Mutate</button><button id="reset">Reset</button></div>
 <div class="section"><h2>Geometry</h2><div id="controls"></div></div>
-<div class="section"><h2>Style</h2><div class="row"><div class="lab"><label>Stroke width</label><output id="strokeOut"></output></div><input id="stroke" type="range" min="0.5" max="4" step="0.1" value="1.7"></div><div class="row"><div class="lab"><label>Line color</label></div><input id="color" type="color" value="#8fc2ea"></div><label class="check"><input id="animate" type="checkbox"> Animate flow</label></div>
-<div class="section"><h2>Export</h2><div class="buttons"><button class="primary" id="svgExport">Export SVG</button><button id="pngExport">Export PNG</button></div><div class="hint">Each seed is reproducible. “Mutate” keeps the visual family while shifting the field slightly.</div><div class="status" id="status"></div></div></aside></div>
+<div class="section">
+<h2>Deformation mesh</h2>
+<label class="check"><input id="showMesh" type="checkbox"> Show editable mesh</label>
+<div class="buttons"><button id="resetMesh">Reset mesh</button><button id="copyUrl">Copy share URL</button></div>
+<div class="hint share-note">Drag mesh nodes directly on the artwork. Deformation is stored in the URL together with all generator settings.</div>
+</div>
+<div class="section">
+<h2>Style</h2>
+<div class="row"><div class="lab"><label>Stroke width</label><output id="strokeOut"></output></div><input id="stroke" type="range" min="0.5" max="4" step="0.1" value="1.7"></div>
+<div class="row"><div class="lab"><label>Line color</label></div><input id="color" type="color" value="#8fc2ea"></div>
+<label class="check"><input id="animate" type="checkbox"> Animate flow</label>
+</div>
+<div class="section">
+<h2>Export</h2>
+<div class="buttons"><button class="primary" id="svgExport">Export SVG</button><button id="pngExport">Export PNG</button></div>
+<div class="hint">Each seed is reproducible. “Mutate” keeps the visual family while shifting the field slightly. The editing mesh is not included in exports.</div>
+<div class="status" id="status"></div>
+</div>
+</aside>
+</div>
 <script>
-const W=842,H=596, NX=116, NY=82; const g=document.getElementById('contours'), art=document.getElementById('art');
+const W=842,H=596,NX=116,NY=82,MESH_COLS=7,MESH_ROWS=5;
+const g=document.getElementById('contours'),art=document.getElementById('art'),meshLayer=document.getElementById('mesh');
 const defs=[['density','Contour density',5,14,1,9],['scale','Feature scale',0.55,1.8,.01,1],['flow','Sea flow',0,1.8,.01,.82],['waves','Wave strength',0,1.5,.01,.62],['whorls','Whorl count',1,10,1,6],['whorlStrength','Whorl strength',0,2,.01,1.05],['ecc','Whorl eccentricity',0,1,.01,.48],['distort','Organic distortion',0,1.5,.01,.55],['smooth','Smoothness',0,1,.01,.72],['open','Open contour bias',0,1,.01,.52],['sea','Black Sea influence',0,1,.01,.24]];
-const state={}; const host=document.getElementById('controls');
-for(const [id,label,min,max,step,val] of defs){state[id]=val;let d=document.createElement('div');d.className='row';d.innerHTML=`<div class="lab"><label>${label}</label><output id="${id}Out">${val}</output></div><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}">`;host.appendChild(d);let el=d.querySelector('input'),o=d.querySelector('output');el.oninput=()=>{state[id]=+el.value;o.value=el.value;render()}}
-function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-function hashNoise(x,y,s){let n=Math.sin(x*127.1+y*311.7+s*.013)*43758.5453;return (n-Math.floor(n))*2-1}
-function smoothNoise(x,y,s){let x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);let a=hashNoise(x0,y0,s),b=hashNoise(x0+1,y0,s),c=hashNoise(x0,y0+1,s),d=hashNoise(x0+1,y0+1,s);return (a*(1-fx)+b*fx)*(1-fy)+(c*(1-fx)+d*fx)*fy}
-function fieldFactory(seed,t=0){let R=rng(seed);let centers=[];for(let i=0;i<Math.round(state.whorls);i++) centers.push({x:.08+R()*.84,y:.1+R()*.8,r:.07+R()*.13,ph:R()*6.28,sg:R()>.22?1:-.65});return(x,y)=>{let sc=state.scale;let v=0;let angle=.18+state.flow*.18;let u=(x*Math.cos(angle)+y*Math.sin(angle))*sc, q=(-x*Math.sin(angle)+y*Math.cos(angle))*sc;v+=state.waves*(.48*Math.sin(u*12+t)+.28*Math.sin(q*8-u*3-t*.4));v+=state.flow*.42*Math.sin((y+.16*Math.sin(x*5))*9*sc+t*.3);for(let c of centers){let dx=x-c.x,dy=(y-c.y)*(1+state.ecc*1.5),rr=Math.hypot(dx,dy),a=Math.atan2(dy,dx);v+=c.sg*state.whorlStrength*Math.exp(-rr*rr/(2*c.r*c.r))*Math.cos(rr*28/c.r*.11+a*.35+c.ph);v+=.32*state.whorlStrength*Math.exp(-rr*rr/(2*(c.r*1.65)**2));}v+=state.distort*(.45*smoothNoise(x*5*sc,y*5*sc,seed)+.2*smoothNoise(x*11*sc,y*11*sc,seed+9));let bx=(x-.52)/.46,by=(y-.5)/.23;let seaShape=Math.exp(-(bx*bx+by*by))*Math.cos((x-.5)*7)+.45*Math.exp(-(((x-.3)/.24)**2+((y-.47)/.12)**2))+.4*Math.exp(-(((x-.73)/.18)**2+((y-.54)/.15)**2));v+=state.sea*seaShape;v+=state.open*(x-.5)*.75;return v}}
-const edgeTable=[[0,0],[1,0],[1,1],[0,1]];function interp(a,b,va,vb,l){let t=(l-va)/(vb-va||1e-9);return a+(b-a)*t}
-function contours(field,levels){let vals=Array.from({length:NY},()=>Array(NX));for(let j=0;j<NY;j++)for(let i=0;i<NX;i++)vals[j][i]=field(i/(NX-1),j/(NY-1));let segs=[];for(let L of levels){for(let j=0;j<NY-1;j++)for(let i=0;i<NX-1;i++){let vs=[vals[j][i],vals[j][i+1],vals[j+1][i+1],vals[j+1][i]], pts=[];let xy=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]];for(let e=0;e<4;e++){let n=(e+1)%4;if((vs[e]<L)!=(vs[n]<L)){let x=interp(xy[e][0],xy[n][0],vs[e],vs[n],L),y=interp(xy[e][1],xy[n][1],vs[e],vs[n],L);pts.push([x*W/(NX-1),y*H/(NY-1)])}}if(pts.length==2)segs.push([pts[0],pts[1]]);else if(pts.length==4){segs.push([pts[0],pts[1]],[pts[2],pts[3]])}}}return segs}
-function pathsFromSegments(segs){let key=p=>`${Math.round(p[0]*2)/2},${Math.round(p[1]*2)/2}`, map=new Map();segs.forEach((s,k)=>s.forEach((p,e)=>{let z=key(p);if(!map.has(z))map.set(z,[]);map.get(z).push([k,e])}));let used=new Set(),paths=[];for(let si=0;si<segs.length;si++){if(used.has(si))continue;used.add(si);let p=[segs[si][0],segs[si][1]];for(let side of [1,0]){while(true){let end=side?p[p.length-1]:p[0],cand=(map.get(key(end))||[]).find(([idx])=>!used.has(idx));if(!cand)break;let s=segs[cand[0]];used.add(cand[0]);let nxt=key(s[0])==key(end)?s[1]:s[0];side?p.push(nxt):p.unshift(nxt)}}if(p.length>2)paths.push(p)}return paths}
-function pathD(p){if(state.smooth<.15)return 'M'+p.map(x=>x.map(v=>v.toFixed(1)).join(',')).join('L');let d=`M${p[0][0].toFixed(1)},${p[0][1].toFixed(1)}`;for(let i=1;i<p.length-1;i++){let mx=(p[i][0]+p[i+1][0])/2,my=(p[i][1]+p[i+1][1])/2;d+=` Q${p[i][0].toFixed(1)},${p[i][1].toFixed(1)} ${mx.toFixed(1)},${my.toFixed(1)}`}return d+` L${p.at(-1)[0].toFixed(1)},${p.at(-1)[1].toFixed(1)}`}
-let anim=0,raf;function render(t=0){let seed=+document.getElementById('seed').value||1, f=fieldFactory(seed,t), n=Math.round(state.density), levels=Array.from({length:n},(_,i)=>-1.7+i*3.4/(n-1));let ps=pathsFromSegments(contours(f,levels));g.setAttribute('stroke',document.getElementById('color').value);g.setAttribute('stroke-width',document.getElementById('stroke').value);g.innerHTML=ps.filter(p=>p.length>4).map(p=>`<path d="${pathD(p)}"/>`).join('');document.getElementById('status').textContent=`${ps.length} contour paths · seed ${seed}`}
-function sync(id,v){let e=document.getElementById(id);e.value=v;state[id]=+v;document.getElementById(id+'Out').value=v}
-document.getElementById('stroke').oninput=e=>{document.getElementById('strokeOut').value=e.target.value;render()};document.getElementById('color').oninput=render;document.getElementById('strokeOut').value=document.getElementById('stroke').value;
-document.getElementById('random').onclick=()=>{document.getElementById('seed').value=Math.floor(Math.random()*999999);render()};document.getElementById('mutate').onclick=()=>{let R=rng((+document.getElementById('seed').value)+77);for(let [id,,min,max,step] of defs){if(id==='whorls')continue;let range=max-min,v=Math.max(min,Math.min(max,state[id]+(R()-.5)*range*.12));v=Math.round(v/step)*step;sync(id,v.toFixed(step<1?2:0))}document.getElementById('seed').value=+document.getElementById('seed').value+1;render()};document.getElementById('reset').onclick=()=>{defs.forEach(([id,,, , ,v])=>sync(id,v));document.getElementById('seed').value=18427;render()};document.getElementById('seed').oninput=()=>render();
-document.getElementById('animate').onchange=e=>{cancelAnimationFrame(raf);if(e.target.checked){let start=performance.now();let loop=now=>{render((now-start)/1800);raf=requestAnimationFrame(loop)};raf=requestAnimationFrame(loop)}else render()};
-function svgText(){let clone=art.cloneNode(true);clone.setAttribute('xmlns','http://www.w3.org/2000/svg');return new XMLSerializer().serializeToString(clone)}function dl(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}document.getElementById('svgExport').onclick=()=>dl(new Blob([svgText()],{type:'image/svg+xml'}),`black-sea-pattern-${document.getElementById('seed').value}.svg`);document.getElementById('pngExport').onclick=()=>{let img=new Image(),url=URL.createObjectURL(new Blob([svgText()],{type:'image/svg+xml'}));img.onload=()=>{let c=document.createElement('canvas');c.width=1684;c.height=1192;c.getContext('2d').drawImage(img,0,0,c.width,c.height);c.toBlob(b=>dl(b,`black-sea-pattern-${document.getElementById('seed').value}.png`));URL.revokeObjectURL(url)};img.src=url};render();
-</script></body></html>
+const defaults=Object.fromEntries(defs.map(([id,,,,,val])=>[id,val]));
+const state={...defaults};
+const meshNodes=Array.from({length:MESH_COLS*MESH_ROWS},()=>({dx:0,dy:0}));
+const host=document.getElementById('controls');
+let raf,urlRaf,dragIndex=-1,dragPointer=null;
+for(const [id,label,min,max,step,val] of defs){
+let d=document.createElement('div');
+d.className='row';
+d.innerHTML=`<div class="lab"><label>${label}</label><output id="${id}Out">${val}</output></div><input id="${id}" type="range" min="${min}" max="${max}" step="${step}" value="${val}">`;
+host.appendChild(d);
+let el=d.querySelector('input'),o=d.querySelector('output');
+el.oninput=()=>{state[id]=+el.value;o.value=el.value;render();scheduleUrlSync()};
+}
+function rng(seed){
+let a=seed>>>0;
+return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}
+}
+function hashNoise(x,y,s){
+let n=Math.sin(x*127.1+y*311.7+s*.013)*43758.5453;
+return(n-Math.floor(n))*2-1
+}
+function smoothNoise(x,y,s){
+let x0=Math.floor(x),y0=Math.floor(y),fx=x-x0,fy=y-y0;
+fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);
+let a=hashNoise(x0,y0,s),b=hashNoise(x0+1,y0,s),c=hashNoise(x0,y0+1,s),d=hashNoise(x0+1,y0+1,s);
+return(a*(1-fx)+b*fx)*(1-fy)+(c*(1-fx)+d*fx)*fy
+}
+function fieldFactory(seed,t=0){
+let R=rng(seed),centers=[];
+for(let i=0;i<Math.round(state.whorls);i++)centers.push({x:.08+R()*.84,y:.1+R()*.8,r:.07+R()*.13,ph:R()*6.28,sg:R()>.22?1:-.65});
+return(x,y)=>{
+let sc=state.scale,v=0,angle=.18+state.flow*.18;
+let u=(x*Math.cos(angle)+y*Math.sin(angle))*sc,q=(-x*Math.sin(angle)+y*Math.cos(angle))*sc;
+v+=state.waves*(.48*Math.sin(u*12+t)+.28*Math.sin(q*8-u*3-t*.4));
+v+=state.flow*.42*Math.sin((y+.16*Math.sin(x*5))*9*sc+t*.3);
+for(let c of centers){
+let dx=x-c.x,dy=(y-c.y)*(1+state.ecc*1.5),rr=Math.hypot(dx,dy),a=Math.atan2(dy,dx);
+v+=c.sg*state.whorlStrength*Math.exp(-rr*rr/(2*c.r*c.r))*Math.cos(rr*28/c.r*.11+a*.35+c.ph);
+v+=.32*state.whorlStrength*Math.exp(-rr*rr/(2*(c.r*1.65)**2))
+}
+v+=state.distort*(.45*smoothNoise(x*5*sc,y*5*sc,seed)+.2*smoothNoise(x*11*sc,y*11*sc,seed+9));
+let bx=(x-.52)/.46,by=(y-.5)/.23;
+let seaShape=Math.exp(-(bx*bx+by*by))*Math.cos((x-.5)*7)+.45*Math.exp(-(((x-.3)/.24)**2+((y-.47)/.12)**2))+.4*Math.exp(-(((x-.73)/.18)**2+((y-.54)/.15)**2));
+v+=state.sea*seaShape;
+v+=state.open*(x-.5)*.75;
+return v
+}
+}
+function interp(a,b,va,vb,l){
+let t=(l-va)/(vb-va||1e-9);
+return a+(b-a)*t
+}
+function contours(field,levels){
+let vals=Array.from({length:NY},()=>Array(NX));
+for(let j=0;j<NY;j++)for(let i=0;i<NX;i++)vals[j][i]=field(i/(NX-1),j/(NY-1));
+let segs=[];
+for(let L of levels){
+for(let j=0;j<NY-1;j++)for(let i=0;i<NX-1;i++){
+let vs=[vals[j][i],vals[j][i+1],vals[j+1][i+1],vals[j+1][i]],pts=[],xy=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]];
+for(let e=0;e<4;e++){
+let n=(e+1)%4;
+if((vs[e]<L)!=(vs[n]<L)){
+let x=interp(xy[e][0],xy[n][0],vs[e],vs[n],L),y=interp(xy[e][1],xy[n][1],vs[e],vs[n],L);
+pts.push([x*W/(NX-1),y*H/(NY-1)])
+}
+}
+if(pts.length==2)segs.push([pts[0],pts[1]]);
+else if(pts.length==4)segs.push([pts[0],pts[1]],[pts[2],pts[3]])
+}
+}
+return segs
+}
+function pathsFromSegments(segs){
+let key=p=>`${Math.round(p[0]*2)/2},${Math.round(p[1]*2)/2}`,map=new Map();
+segs.forEach((s,k)=>s.forEach(p=>{let z=key(p);if(!map.has(z))map.set(z,[]);map.get(z).push(k)}));
+let used=new Set(),paths=[];
+for(let si=0;si<segs.length;si++){
+if(used.has(si))continue;
+used.add(si);
+let p=[segs[si][0],segs[si][1]];
+for(let side of[1,0]){
+while(true){
+let end=side?p[p.length-1]:p[0],cand=(map.get(key(end))||[]).find(idx=>!used.has(idx));
+if(cand===undefined)break;
+let s=segs[cand];
+used.add(cand);
+let nxt=key(s[0])==key(end)?s[1]:s[0];
+side?p.push(nxt):p.unshift(nxt)
+}
+}
+if(p.length>2)paths.push(p)
+}
+return paths
+}
+function meshBase(index){
+let col=index%MESH_COLS,row=Math.floor(index/MESH_COLS);
+return{x:col*W/(MESH_COLS-1),y:row*H/(MESH_ROWS-1)}
+}
+function meshPoint(index){
+let b=meshBase(index),n=meshNodes[index];
+return{x:b.x+n.dx,y:b.y+n.dy}
+}
+function deformPoint(p){
+let x=Math.max(0,Math.min(W,p[0])),y=Math.max(0,Math.min(H,p[1]));
+let gx=x/W*(MESH_COLS-1),gy=y/H*(MESH_ROWS-1);
+let c=Math.min(MESH_COLS-2,Math.floor(gx)),r=Math.min(MESH_ROWS-2,Math.floor(gy));
+let tx=gx-c,ty=gy-r;
+let i00=r*MESH_COLS+c,i10=i00+1,i01=i00+MESH_COLS,i11=i01+1;
+let n00=meshNodes[i00],n10=meshNodes[i10],n01=meshNodes[i01],n11=meshNodes[i11];
+let dx=(1-tx)*(1-ty)*n00.dx+tx*(1-ty)*n10.dx+(1-tx)*ty*n01.dx+tx*ty*n11.dx;
+let dy=(1-tx)*(1-ty)*n00.dy+tx*(1-ty)*n10.dy+(1-tx)*ty*n01.dy+tx*ty*n11.dy;
+return[p[0]+dx,p[1]+dy]
+}
+function pathD(p){
+if(state.smooth<.15)return'M'+p.map(x=>x.map(v=>v.toFixed(1)).join(',')).join('L');
+let d=`M${p[0][0].toFixed(1)},${p[0][1].toFixed(1)}`;
+for(let i=1;i<p.length-1;i++){
+let mx=(p[i][0]+p[i+1][0])/2,my=(p[i][1]+p[i+1][1])/2;
+d+=` Q${p[i][0].toFixed(1)},${p[i][1].toFixed(1)} ${mx.toFixed(1)},${my.toFixed(1)}`
+}
+return d+` L${p.at(-1)[0].toFixed(1)},${p.at(-1)[1].toFixed(1)}`
+}
+function drawMesh(){
+if(!document.getElementById('showMesh').checked){
+meshLayer.innerHTML='';
+return
+}
+let lines=[];
+for(let r=0;r<MESH_ROWS;r++){
+let pts=[];
+for(let c=0;c<MESH_COLS;c++){let p=meshPoint(r*MESH_COLS+c);pts.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`)}
+lines.push(`<polyline class="mesh-line" points="${pts.join(' ')}"/>`)
+}
+for(let c=0;c<MESH_COLS;c++){
+let pts=[];
+for(let r=0;r<MESH_ROWS;r++){let p=meshPoint(r*MESH_COLS+c);pts.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`)}
+lines.push(`<polyline class="mesh-line" points="${pts.join(' ')}"/>`)
+}
+let nodes=meshNodes.map((_,i)=>{let p=meshPoint(i);return`<circle class="mesh-node${i===dragIndex?' active':''}" data-index="${i}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5.5"/>`}).join('');
+meshLayer.innerHTML=lines.join('')+nodes
+}
+function render(t=0){
+let seed=+document.getElementById('seed').value||1,f=fieldFactory(seed,t),n=Math.round(state.density);
+let levels=Array.from({length:n},(_,i)=>-1.7+i*3.4/(n-1));
+let ps=pathsFromSegments(contours(f,levels)).map(p=>p.map(deformPoint));
+g.setAttribute('stroke',document.getElementById('color').value);
+g.setAttribute('stroke-width',document.getElementById('stroke').value);
+g.innerHTML=ps.filter(p=>p.length>4).map(p=>`<path d="${pathD(p)}"/>`).join('');
+drawMesh();
+let moved=meshNodes.filter(n=>Math.abs(n.dx)>.05||Math.abs(n.dy)>.05).length;
+document.getElementById('status').textContent=`${ps.length} contour paths · seed ${seed}${moved?` · ${moved} mesh nodes moved`:''}`
+}
+function sync(id,v){
+let e=document.getElementById(id);
+e.value=v;
+state[id]=+v;
+document.getElementById(id+'Out').value=v
+}
+function resetMesh(){
+meshNodes.forEach(n=>{n.dx=0;n.dy=0})
+}
+function currentUrl(){
+let u=new URL(location.href);
+u.search='';
+u.hash='';
+u.searchParams.set('s',document.getElementById('seed').value||18427);
+for(const [id] of defs)u.searchParams.set(id,String(state[id]));
+u.searchParams.set('sw',document.getElementById('stroke').value);
+u.searchParams.set('c',document.getElementById('color').value.slice(1));
+if(document.getElementById('animate').checked)u.searchParams.set('a','1');
+if(document.getElementById('showMesh').checked)u.searchParams.set('grid','1');
+let moved=[];
+meshNodes.forEach((n,i)=>{
+if(Math.abs(n.dx)>.05||Math.abs(n.dy)>.05)moved.push(`${i}:${n.dx.toFixed(2)}:${n.dy.toFixed(2)}`)
+});
+if(moved.length)u.searchParams.set('md',moved.join(','));
+return u
+}
+function syncUrl(){
+history.replaceState(null,'',currentUrl())
+}
+function scheduleUrlSync(){
+cancelAnimationFrame(urlRaf);
+urlRaf=requestAnimationFrame(syncUrl)
+}
+function readUrl(){
+let p=new URLSearchParams(location.search);
+let seed=Number(p.get('s'));
+if(Number.isFinite(seed)&&seed>0)document.getElementById('seed').value=Math.round(seed);
+for(const [id,,min,max,step] of defs){
+if(!p.has(id))continue;
+let v=Number(p.get(id));
+if(!Number.isFinite(v))continue;
+v=Math.max(min,Math.min(max,v));
+v=Math.round(v/step)*step;
+sync(id,v)
+}
+let sw=Number(p.get('sw'));
+if(Number.isFinite(sw))document.getElementById('stroke').value=Math.max(.5,Math.min(4,sw));
+document.getElementById('strokeOut').value=document.getElementById('stroke').value;
+let color=p.get('c');
+if(color&&/^[0-9a-f]{6}$/i.test(color))document.getElementById('color').value='#'+color;
+document.getElementById('animate').checked=p.get('a')==='1';
+document.getElementById('showMesh').checked=p.get('grid')==='1';
+let md=p.get('md');
+if(md){
+md.split(',').forEach(item=>{
+let [i,dx,dy]=item.split(':').map(Number);
+if(Number.isInteger(i)&&i>=0&&i<meshNodes.length&&Number.isFinite(dx)&&Number.isFinite(dy)){
+meshNodes[i].dx=Math.max(-W,Math.min(W,dx));
+meshNodes[i].dy=Math.max(-H,Math.min(H,dy))
+}
+})
+}
+}
+function svgPointFromEvent(e){
+let pt=art.createSVGPoint();
+pt.x=e.clientX;pt.y=e.clientY;
+return pt.matrixTransform(art.getScreenCTM().inverse())
+}
+document.getElementById('stroke').oninput=e=>{
+document.getElementById('strokeOut').value=e.target.value;
+render();
+scheduleUrlSync()
+};
+document.getElementById('color').oninput=()=>{
+render();
+scheduleUrlSync()
+};
+document.getElementById('strokeOut').value=document.getElementById('stroke').value;
+document.getElementById('random').onclick=()=>{
+document.getElementById('seed').value=Math.floor(Math.random()*999999)+1;
+render();
+scheduleUrlSync()
+};
+document.getElementById('mutate').onclick=()=>{
+let R=rng((+document.getElementById('seed').value)+77);
+for(let[id,,min,max,step]of defs){
+if(id==='whorls')continue;
+let range=max-min,v=Math.max(min,Math.min(max,state[id]+(R()-.5)*range*.12));
+v=Math.round(v/step)*step;
+sync(id,v.toFixed(step<1?2:0))
+}
+document.getElementById('seed').value=+document.getElementById('seed').value+1;
+render();
+scheduleUrlSync()
+};
+document.getElementById('reset').onclick=()=>{
+defs.forEach(([id,,,,,v])=>sync(id,v));
+document.getElementById('seed').value=18427;
+document.getElementById('stroke').value=1.7;
+document.getElementById('strokeOut').value=1.7;
+document.getElementById('color').value='#8fc2ea';
+document.getElementById('animate').checked=false;
+document.getElementById('showMesh').checked=false;
+cancelAnimationFrame(raf);
+resetMesh();
+render();
+syncUrl()
+};
+document.getElementById('seed').oninput=()=>{
+render();
+scheduleUrlSync()
+};
+document.getElementById('showMesh').onchange=()=>{
+render();
+scheduleUrlSync()
+};
+document.getElementById('resetMesh').onclick=()=>{
+resetMesh();
+render();
+scheduleUrlSync()
+};
+document.getElementById('copyUrl').onclick=async e=>{
+syncUrl();
+let text=location.href;
+try{
+await navigator.clipboard.writeText(text);
+e.currentTarget.textContent='Copied';
+setTimeout(()=>e.currentTarget.textContent='Copy share URL',1200)
+}catch{
+prompt('Copy this URL',text)
+}
+};
+document.getElementById('animate').onchange=e=>{
+cancelAnimationFrame(raf);
+scheduleUrlSync();
+if(e.target.checked){
+let start=performance.now();
+let loop=now=>{render((now-start)/1800);raf=requestAnimationFrame(loop)};
+raf=requestAnimationFrame(loop)
+}else render()
+};
+art.addEventListener('pointerdown',e=>{
+let node=e.target.closest&&e.target.closest('.mesh-node');
+if(!node)return;
+dragIndex=+node.dataset.index;
+dragPointer=e.pointerId;
+art.setPointerCapture(e.pointerId);
+drawMesh();
+e.preventDefault()
+});
+art.addEventListener('pointermove',e=>{
+if(dragIndex<0||e.pointerId!==dragPointer)return;
+let p=svgPointFromEvent(e),b=meshBase(dragIndex);
+let x=Math.max(0,Math.min(W,p.x)),y=Math.max(0,Math.min(H,p.y));
+meshNodes[dragIndex].dx=x-b.x;
+meshNodes[dragIndex].dy=y-b.y;
+render();
+scheduleUrlSync()
+});
+function endDrag(e){
+if(dragIndex<0||e.pointerId!==dragPointer)return;
+dragIndex=-1;
+dragPointer=null;
+render();
+syncUrl()
+}
+art.addEventListener('pointerup',endDrag);
+art.addEventListener('pointercancel',endDrag);
+function svgText(){
+let clone=art.cloneNode(true);
+clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+let editMesh=clone.querySelector('#mesh');
+if(editMesh)editMesh.remove();
+return new XMLSerializer().serializeToString(clone)
+}
+function dl(blob,name){
+let a=document.createElement('a');
+a.href=URL.createObjectURL(blob);
+a.download=name;
+a.click();
+setTimeout(()=>URL.revokeObjectURL(a.href),1000)
+}
+document.getElementById('svgExport').onclick=()=>dl(new Blob([svgText()],{type:'image/svg+xml'}),`black-sea-pattern-${document.getElementById('seed').value}.svg`);
+document.getElementById('pngExport').onclick=()=>{
+let img=new Image(),url=URL.createObjectURL(new Blob([svgText()],{type:'image/svg+xml'}));
+img.onload=()=>{
+let c=document.createElement('canvas');
+c.width=1684;c.height=1192;
+c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+c.toBlob(b=>dl(b,`black-sea-pattern-${document.getElementById('seed').value}.png`));
+URL.revokeObjectURL(url)
+};
+img.src=url
+};
+readUrl();
+render();
+if(document.getElementById('animate').checked)document.getElementById('animate').dispatchEvent(new Event('change'));
+</script>
+</body>
+</html>
