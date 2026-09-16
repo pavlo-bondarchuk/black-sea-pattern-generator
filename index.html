@@ -68,9 +68,9 @@ button:disabled{opacity:.48;cursor:not-allowed}
 <h2>Style</h2>
 <div class="row"><div class="lab"><label>Stroke width</label><output id="strokeOut"></output></div><input id="stroke" type="range" min="0.5" max="4" step="0.1" value="1.7"></div>
 <div class="row"><div class="lab"><label>Line color</label></div><input id="color" type="color" value="#8fc2ea"></div>
-<label class="check"><input id="lineWave" type="checkbox"> Wavy line effect</label>
+<label class="check"><input id="lineWave" type="checkbox"> Wave shadow effect</label>
 <div id="lineWaveControls" class="wave-controls disabled">
-<div class="row"><div class="lab"><label>Wave amount</label><output id="lineWaveAmpOut">3.2</output></div><input id="lineWaveAmp" type="range" min="0.5" max="10" step="0.1" value="3.2" disabled></div>
+<div class="row"><div class="lab"><label>Shadow amount</label><output id="lineWaveAmpOut">3.2</output></div><input id="lineWaveAmp" type="range" min="0.5" max="10" step="0.1" value="3.2" disabled></div>
 <div class="row"><div class="lab"><label>Wave length</label><output id="lineWaveLenOut">34</output></div><input id="lineWaveLen" type="range" min="12" max="90" step="1" value="34" disabled></div>
 </div>
 <label class="check"><input id="animate" type="checkbox"> Animate flow</label>
@@ -201,13 +201,13 @@ let dx=(1-tx)*(1-ty)*n00.dx+tx*(1-ty)*n10.dx+(1-tx)*ty*n01.dx+tx*ty*n11.dx;
 let dy=(1-tx)*(1-ty)*n00.dy+tx*(1-ty)*n10.dy+(1-tx)*ty*n01.dy+tx*ty*n11.dy;
 return[p[0]+dx,p[1]+dy]
 }
-function waveLinePath(p,t){
+function waveShadowPath(p,t){
 if(!lineWave.checked||p.length<3)return p;
-let amp=+lineWaveAmp.value,wavelength=+lineWaveLen.value,phase=t*1800/GIF_MS*Math.PI*2,base=(p[0][0]*.021+p[0][1]*.017)%(Math.PI*2),distance=0,out=[];
+let amp=+lineWaveAmp.value,wavelength=+lineWaveLen.value,phase=t*1800/GIF_MS*Math.PI*2,base=(p[0][0]*.013+p[0][1]*.011)%(Math.PI*2),distance=0,out=[];
 for(let i=0;i<p.length;i++){
 if(i>0)distance+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);
-let prev=p[Math.max(0,i-1)],next=p[Math.min(p.length-1,i+1)],tx=next[0]-prev[0],ty=next[1]-prev[1],len=Math.hypot(tx,ty)||1,nx=-ty/len,ny=tx/len,a=distance/wavelength*Math.PI*2+phase+base,edge=i===0||i===p.length-1?.45:1,offset=Math.sin(a)*amp*edge;
-out.push([p[i][0]+nx*offset,p[i][1]+ny*offset])
+let prev=p[Math.max(0,i-1)],next=p[Math.min(p.length-1,i+1)],tx=next[0]-prev[0],ty=next[1]-prev[1],len=Math.hypot(tx,ty)||1,nx=-ty/len,ny=tx/len,a=distance/wavelength*Math.PI*2+phase+base,pulse=Math.max(0,Math.sin(a)),edge=i===0||i===p.length-1?.18:1,offset=pulse*pulse*amp*edge,drag=offset*.14;
+out.push([p[i][0]+nx*offset+tx/len*drag,p[i][1]+ny*offset+ty/len*drag])
 }
 return out
 }
@@ -242,11 +242,16 @@ meshLayer.innerHTML=lines.join('')+nodes
 function render(t=0){
 let seed=+document.getElementById('seed').value||1,f=fieldFactory(seed,t),n=Math.round(state.density);
 let levels=Array.from({length:n},(_,i)=>-1.7+i*3.4/(n-1));
-let ps=pathsFromSegments(contours(f,levels)).map(p=>p.map(deformPoint));
-if(lineWave.checked)ps=ps.map(p=>waveLinePath(p,t));
-g.setAttribute('stroke',document.getElementById('color').value);
-g.setAttribute('stroke-width',document.getElementById('stroke').value);
-g.innerHTML=ps.filter(p=>p.length>4).map(p=>`<path d="${pathD(p)}"/>`).join('');
+let ps=pathsFromSegments(contours(f,levels)).map(p=>p.map(deformPoint)).filter(p=>p.length>4);
+let stroke=document.getElementById('color').value,sw=+document.getElementById('stroke').value;
+g.setAttribute('stroke',stroke);
+g.setAttribute('stroke-width',sw);
+let shadow='';
+if(lineWave.checked){
+let shadowWidth=Math.max(.35,sw*.88).toFixed(2);
+shadow=ps.map(p=>`<path d="${pathD(waveShadowPath(p,t))}" stroke-width="${shadowWidth}" stroke-opacity="0.34"/>`).join('')
+}
+g.innerHTML=shadow+ps.map(p=>`<path d="${pathD(p)}"/>`).join('');
 drawMesh();
 let moved=meshNodes.filter(n=>Math.abs(n.dx)>.05||Math.abs(n.dy)>.05).length;
 document.getElementById('status').textContent=`${ps.length} contour paths · seed ${seed}${moved?` · ${moved} mesh nodes moved`:''}`
