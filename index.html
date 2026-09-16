@@ -68,10 +68,10 @@ button:disabled{opacity:.48;cursor:not-allowed}
 <h2>Style</h2>
 <div class="row"><div class="lab"><label>Stroke width</label><output id="strokeOut"></output></div><input id="stroke" type="range" min="0.5" max="4" step="0.1" value="1.7"></div>
 <div class="row"><div class="lab"><label>Line color</label></div><input id="color" type="color" value="#8fc2ea"></div>
-<label class="check"><input id="lineWave" type="checkbox"> Wave shadow effect</label>
+<label class="check"><input id="lineWave" type="checkbox"> Blurred shadow between lines</label>
 <div id="lineWaveControls" class="wave-controls disabled">
-<div class="row"><div class="lab"><label>Shadow amount</label><output id="lineWaveAmpOut">3.2</output></div><input id="lineWaveAmp" type="range" min="0.5" max="10" step="0.1" value="3.2" disabled></div>
-<div class="row"><div class="lab"><label>Wave length</label><output id="lineWaveLenOut">34</output></div><input id="lineWaveLen" type="range" min="12" max="90" step="1" value="34" disabled></div>
+<div class="row"><div class="lab"><label>Shadow spread</label><output id="lineWaveAmpOut">5.0</output></div><input id="lineWaveAmp" type="range" min="1" max="18" step="0.5" value="5" disabled></div>
+<div class="row"><div class="lab"><label>Blur radius</label><output id="lineWaveLenOut">4.0</output></div><input id="lineWaveLen" type="range" min="0.5" max="12" step="0.5" value="4" disabled></div>
 </div>
 <label class="check"><input id="animate" type="checkbox"> Animate flow</label>
 </div>
@@ -85,7 +85,7 @@ button:disabled{opacity:.48;cursor:not-allowed}
 </div>
 <script src="https://cdn.jsdelivr.net/npm/gif.js.optimized/dist/gif.js"></script>
 <script>
-const W=842,H=596,NX=116,NY=82,MESH_COLS=7,MESH_ROWS=5,GIF_MS=2000,GIF_FRAMES=25,LINE_WAVE_AMP_DEFAULT=3.2,LINE_WAVE_LEN_DEFAULT=34;
+const W=842,H=596,NX=116,NY=82,MESH_COLS=7,MESH_ROWS=5,GIF_MS=2000,GIF_FRAMES=25,LINE_WAVE_AMP_DEFAULT=5,LINE_WAVE_LEN_DEFAULT=4;
 const g=document.getElementById('contours'),art=document.getElementById('art'),meshLayer=document.getElementById('mesh'),gifButton=document.getElementById('gifExport'),lineWave=document.getElementById('lineWave'),lineWaveControls=document.getElementById('lineWaveControls'),lineWaveAmp=document.getElementById('lineWaveAmp'),lineWaveLen=document.getElementById('lineWaveLen');
 const defs=[['density','Contour density',5,14,1,9],['scale','Feature scale',0.55,1.8,.01,1],['flow','Sea flow',0,1.8,.01,.82],['waves','Wave strength',0,1.5,.01,.62],['whorls','Whorl count',1,10,1,6],['whorlStrength','Whorl strength',0,2,.01,1.05],['ecc','Whorl eccentricity',0,1,.01,.48],['distort','Organic distortion',0,1.5,.01,.55],['smooth','Smoothness',0,1,.01,.72],['open','Open contour bias',0,1,.01,.52],['sea','Black Sea influence',0,1,.01,.24]];
 const defaults=Object.fromEntries(defs.map(([id,,,,,val])=>[id,val]));
@@ -201,16 +201,6 @@ let dx=(1-tx)*(1-ty)*n00.dx+tx*(1-ty)*n10.dx+(1-tx)*ty*n01.dx+tx*ty*n11.dx;
 let dy=(1-tx)*(1-ty)*n00.dy+tx*(1-ty)*n10.dy+(1-tx)*ty*n01.dy+tx*ty*n11.dy;
 return[p[0]+dx,p[1]+dy]
 }
-function waveShadowPath(p,t){
-if(!lineWave.checked||p.length<3)return p;
-let amp=+lineWaveAmp.value,wavelength=+lineWaveLen.value,phase=t*1800/GIF_MS*Math.PI*2,base=(p[0][0]*.013+p[0][1]*.011)%(Math.PI*2),distance=0,out=[];
-for(let i=0;i<p.length;i++){
-if(i>0)distance+=Math.hypot(p[i][0]-p[i-1][0],p[i][1]-p[i-1][1]);
-let prev=p[Math.max(0,i-1)],next=p[Math.min(p.length-1,i+1)],tx=next[0]-prev[0],ty=next[1]-prev[1],len=Math.hypot(tx,ty)||1,nx=-ty/len,ny=tx/len,a=distance/wavelength*Math.PI*2+phase+base,pulse=Math.max(0,Math.sin(a)),edge=i===0||i===p.length-1?.18:1,offset=pulse*pulse*amp*edge,drag=offset*.14;
-out.push([p[i][0]+nx*offset+tx/len*drag,p[i][1]+ny*offset+ty/len*drag])
-}
-return out
-}
 function pathD(p){
 if(state.smooth<.15)return'M'+p.map(x=>x.map(v=>v.toFixed(1)).join(',')).join('L');
 let d=`M${p[0][0].toFixed(1)},${p[0][1].toFixed(1)}`;
@@ -248,8 +238,8 @@ g.setAttribute('stroke',stroke);
 g.setAttribute('stroke-width',sw);
 let shadow='';
 if(lineWave.checked){
-let shadowWidth=Math.max(.35,sw*.88).toFixed(2);
-shadow=ps.map(p=>`<path d="${pathD(waveShadowPath(p,t))}" stroke-width="${shadowWidth}" stroke-opacity="0.34"/>`).join('')
+let spread=+lineWaveAmp.value,blur=+lineWaveLen.value,shadowWidth=Math.max(sw+spread,sw*2).toFixed(2);
+shadow=`<defs><filter id="softLineShadow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="${blur.toFixed(2)}"/></filter></defs>`+ps.map(p=>`<path d="${pathD(p)}" stroke="${stroke}" stroke-width="${shadowWidth}" stroke-opacity="0.22" filter="url(#softLineShadow)"/>`).join('')
 }
 g.innerHTML=shadow+ps.map(p=>`<path d="${pathD(p)}"/>`).join('');
 drawMesh();
@@ -320,8 +310,8 @@ document.getElementById('strokeOut').value=document.getElementById('stroke').val
 let color=p.get('c');
 if(color&&/^[0-9a-f]{6}$/i.test(color))document.getElementById('color').value='#'+color;
 lineWave.checked=p.get('wl')==='1';
-let wla=Number(p.get('wla'));if(Number.isFinite(wla))lineWaveAmp.value=Math.max(.5,Math.min(10,wla));
-let wll=Number(p.get('wll'));if(Number.isFinite(wll))lineWaveLen.value=Math.max(12,Math.min(90,wll));
+let wla=Number(p.get('wla'));if(Number.isFinite(wla))lineWaveAmp.value=Math.max(1,Math.min(18,wla));
+let wll=Number(p.get('wll'));if(Number.isFinite(wll))lineWaveLen.value=Math.max(.5,Math.min(12,wll));
 document.getElementById('lineWaveAmpOut').value=lineWaveAmp.value;
 document.getElementById('lineWaveLenOut').value=lineWaveLen.value;
 document.getElementById('animate').checked=p.get('a')==='1';
